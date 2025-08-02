@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Result</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .success-icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 20px;
+            background: linear-gradient(45deg, #48bb78, #38a169);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: bounce 0.6s ease-out;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 53%, 80%, 100% {
+                transform: translate3d(0, 0, 0);
+            }
+            40%, 43% {
+                transform: translate3d(0, -10px, 0);
+            }
+            70% {
+                transform: translate3d(0, -5px, 0);
+            }
+            90% {
+                transform: translate3d(0, -2px, 0);
+            }
+        }
+
+        .success-icon svg {
+            width: 40px;
+            height: 40px;
+            fill: white;
+        }
+
+        h2 {
+            color: #2d3748;
+            font-size: 2.2rem;
+            margin-bottom: 15px;
+            font-weight: 700;
+        }
+
+        .result-label {
+            color: #718096;
+            font-size: 1rem;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .result-container {
+            background: #f7fafc;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .result-container::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #4facfe, #00f2fe);
+        }
+
+        .result-text {
+            color: #2d3748;
+            font-size: 1.1rem;
+            line-height: 1.6;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            text-align: left;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .result-text:empty::before {
+            content: 'No data found in QR code';
+            color: #a0aec0;
+            font-style: italic;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #4facfe, #00f2fe);
+            color: white;
+            box-shadow: 0 10px 20px rgba(79, 172, 254, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 15px 30px rgba(79, 172, 254, 0.4);
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #4facfe;
+            border: 2px solid #4facfe;
+        }
+
+        .btn-secondary:hover {
+            background: #4facfe;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+            transition: left 0.5s;
+        }
+
+        .btn:hover::before {
+            left: 100%;
+        }
+
+        .copy-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #48bb78;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(72, 187, 120, 0.3);
+            transform: translateX(100%);
+            transition: transform 0.3s ease;
+            z-index: 1000;
+        }
+
+        .copy-notification.show {
+            transform: translateX(0);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .stat {
+            padding: 15px;
+            background: rgba(79, 172, 254, 0.05);
+            border-radius: 10px;
+            border: 1px solid rgba(79, 172, 254, 0.1);
+        }
+
+        .stat-icon {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+            display: block;
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 0.8rem;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h2 {
+                font-size: 1.8rem;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .btn {
+                width: 100%;
+                max-width: 200px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="success-icon">
+            <svg viewBox="0 0 24 24">
+                <path d="M21,7L9,19L3.5,13.5L4.91,12.09L9,16.17L19.59,5.59L21,7Z"/>
+            </svg>
+        </div>
+        
+        <h2>QR Code Scanned!</h2>
+        <p class="result-label">Here's what we found:</p>
+        
+        <div class="result-container">
+            <div class="result-text" id="resultText" th:text="${qrResult}">[Result Here]</div>
+        </div>
+        
+        <div class="action-buttons">
+            <button class="btn btn-secondary" onclick="copyResult()">
+                <span>📋</span> Copy Result
+            </button>
+            <a href="/" class="btn btn-primary">
+                <span>🔍</span> Scan Another
+            </a>
+        </div>
+        
+        <div class="stats">
+            <div class="stat">
+                <span class="stat-icon">📊</span>
+                <div class="stat-label">Characters</div>
+                <div class="stat-value" id="charCount">-</div>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">🔤</span>
+                <div class="stat-label">Type</div>
+                <div class="stat-value" id="dataType">-</div>
+            </div>
+            <div class="stat">
+                <span class="stat-icon">⚡</span>
+                <div class="stat-label">Status</div>
+                <div class="stat-value">Success</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="copy-notification" id="copyNotification">
+        ✅ Copied to clipboard!
+    </div>
+
+    <script>
+        // Get result text and update stats
+        const resultText = document.getElementById('resultText').textContent;
+        const charCount = document.getElementById('charCount');
+        const dataType = document.getElementById('dataType');
+
+        // Update character count
+        charCount.textContent = resultText.length;
+
+        // Detect data type
+        function detectDataType(text) {
+            if (text.startsWith('http://') || text.startsWith('https://')) {
+                return 'URL';
+            } else if (text.includes('@') && text.includes('.')) {
+                return 'Email';
+            } else if (text.startsWith('tel:')) {
+                return 'Phone';
+            } else if (text.includes('WIFI:')) {
+                return 'WiFi';
+            } else if (text.includes('BEGIN:VCARD')) {
+                return 'Contact';
+            } else if (/^\d+$/.test(text)) {
+                return 'Number';
+            } else {
+                return 'Text';
+            }
+        }
+
+        dataType.textContent = detectDataType(resultText);
+
+        // Copy functionality
+        function copyResult() {
+            navigator.clipboard.writeText(resultText).then(function() {
+                const notification = document.getElementById('copyNotification');
+                notification.classList.add('show');
+                setTimeout(() => {
+                    notification.classList.remove('show');
+                }, 2000);
+            }).catch(function(err) {
+                console.error('Failed to copy: ', err);
+            });
+        }
+
+        // Auto-select text if it's a URL
+        if (resultText.startsWith('http://') || resultText.startsWith('https://')) {
+            const resultElement = document.getElementById('resultText');
+            resultElement.innerHTML = `<a href="${resultText}" target="_blank" style="color: #4facfe; text-decoration: underline;">${resultText}</a>`;
+        }
+    </script>
+</body>
+</html>
